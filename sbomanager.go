@@ -47,9 +47,9 @@ func init() {
 }
 
 func main() {
-	if flag.NFlag() > 1 {
-		fmt.Println("too many flags set")
-		return
+	if flag.NFlag() > 1 || flag.NFlag() < 1 {
+		flag.Usage()
+		os.Exit(2)
 	}
 	flag.Visit(runCommand)
 
