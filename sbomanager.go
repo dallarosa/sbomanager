@@ -1,19 +1,15 @@
 package main
 
 import (
-	"archive/tar"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
-	"path"
 	"regexp"
 	"strings"
 )
@@ -140,90 +136,11 @@ func search(keyword string) {
 }
 
 func install(keyword string) {
-	downloadPackage(pkgList[keyword])
-	downloadSources(pkgList[keyword])
-	createPackage(pkgList[keyword])
-}
-
-func createPackage(pkg Package) {
-	log.Println("Creating package...")
-	err := os.Chdir(tmpDir + pkg.Name)
-	check(err)
-	cmd := exec.Command("./" + pkg.Name + ".SlackBuild")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stdout
-	err = cmd.Run()
-	check(err)
-}
-
-func downloadSources(pkg Package) {
-	for _, sourceUrl := range pkg.DownloadUrl {
-		log.Printf("Downloading source at %s\n", sourceUrl)
-
-		resp, err := http.Get(sourceUrl)
-		check(err)
-
-		url, err := url.Parse(sourceUrl)
-		check(err)
-		_, fileName := path.Split(url.Path)
-		check(err)
-
-		out, err := os.Create(tmpDir + pkg.Name + "/" + fileName)
-		check(err)
-		_, err = io.Copy(out, resp.Body)
-		check(err)
-
-		err = out.Close()
-		check(err)
-		err = resp.Body.Close()
-		check(err)
-	}
-}
-
-func downloadPackage(pkg Package) {
-	err := os.MkdirAll(tmpDir, 0755)
-	check(err)
-
-	pkgUrl := baseUrl + version + pkg.Location[1:] + ".tar.gz"
-	log.Printf("Downloading SBO package at %s\n", pkgUrl)
-
-	resp, err := http.Get(pkgUrl)
-	defer resp.Body.Close()
-	check(err)
-
-	log.Printf("Extracting package...\n")
-	tr := tar.NewReader(resp.Body)
-	slackbuildFile := pkg.Name + "/" + pkg.Name + ".SlackBuild"
-	if tr != nil {
-		for {
-			hdr, err := tr.Next()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Fatalln(err)
-			}
-			switch hdr.Typeflag {
-			case tar.TypeDir:
-				dirPath := tmpDir + hdr.Name
-				log.Println(dirPath)
-				err = os.Mkdir(tmpDir+hdr.Name, os.ModeDir|0755)
-			default:
-				filePath := tmpDir + hdr.Name
-				log.Println(filePath)
-				out, err := os.Create(tmpDir + hdr.Name)
-				check(err)
-				_, err = io.Copy(out, tr)
-				check(err)
-				err = out.Close()
-				check(err)
-				if hdr.Name == slackbuildFile {
-					err = os.Chmod(tmpDir+slackbuildFile, 0755)
-					check(err)
-				}
-			}
-		}
-	}
+	pkg := pkgList[keyword]
+	pkg.Download()
+	pkg.DownloadSources()
+	pkg.Create()
+	pkg.Install()
 }
 
 func genBuildList(pkg Package) (depList []string) {
