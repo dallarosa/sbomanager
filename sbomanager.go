@@ -68,19 +68,23 @@ func runCommand(sFlag *flag.Flag) {
 		show(keyword)
 	case "install":
 		loadPkgList()
-		if pkgList[keyword].Name == "" {
-			fmt.Println("Package not found")
-		} else {
-			buildList := genBuildList(pkgList[keyword])
-			fmt.Println("Building the following packages:")
-			fmt.Println(buildList)
-			fmt.Printf("(Y/n)")
-			c := ""
-			fmt.Scanln(&c)
-			if strings.ToLower(c) == "y" || c == "\n" {
-				for _, pkgName := range buildList {
-					install(pkgName)
-				}
+		install(keyword)
+	}
+}
+
+func install(keyword string) {
+	if pkgList[keyword].Name == "" {
+		fmt.Println("Package not found")
+	} else {
+		buildList := genBuildList(pkgList[keyword])
+		fmt.Println("Building the following packages:")
+		fmt.Println(buildList)
+		fmt.Printf("(Y/n)")
+		c := ""
+		fmt.Scanln(&c)
+		if strings.ToLower(c) == "y" || c == "\n" {
+			for _, pkgName := range buildList {
+				installPkgs(pkgName)
 			}
 		}
 	}
@@ -135,7 +139,7 @@ func search(keyword string) {
 	}
 }
 
-func install(keyword string) {
+func installPkgs(keyword string) {
 	pkg := pkgList[keyword]
 	pkg.Download()
 	pkg.DownloadSources()
