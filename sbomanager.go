@@ -47,7 +47,7 @@ func init() {
 }
 
 func main() {
-	if flag.NFlag() > 1 || flag.NFlag() < 1 {
+	if flag.NFlag() < 1 {
 		flag.Usage()
 		os.Exit(2)
 	}
