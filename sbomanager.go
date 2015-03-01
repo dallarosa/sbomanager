@@ -27,12 +27,6 @@ var (
 )
 
 func init() {
-	flag.String("search", "", "package to search")
-	flag.String("install", "", "package to install")
-	flag.String("show", "", "show package details")
-	flag.Bool("update", false, "update package list")
-	flag.Parse()
-
 	versionFile, err := ioutil.ReadFile("/etc/slackware-version")
 	check(err)
 
@@ -47,32 +41,38 @@ func init() {
 }
 
 func main() {
-	if flag.NFlag() < 1 {
+	flag.Usage = usage
+	flag.Parse()
+	if flag.NArg() < 1 {
 		flag.Usage()
 		os.Exit(2)
+	} else {
+		runCommand(flag.Arg(0))
 	}
-	flag.Visit(runCommand)
-
 }
 
-func runCommand(sFlag *flag.Flag) {
-	keyword := sFlag.Value.String()
-	switch sFlag.Name {
+func usage() {
+	fmt.Println(`Usage:
+		aaaa`)
+}
+
+func runCommand(cmd string) {
+	switch cmd {
 	case "search":
-		loadPkgList()
-		search(keyword)
+		search()
 	case "update":
 		update()
 	case "show":
-		loadPkgList()
-		show(keyword)
+		show()
 	case "install":
-		loadPkgList()
-		install(keyword)
+		install()
 	}
 }
 
-func install(keyword string) {
+func install() {
+	instFS := flag.NewFlagSet("install", flag.ExitOnError)
+	keyword := instFS.Arg(0)
+
 	if pkgList[keyword].Name == "" {
 		fmt.Println("Package not found")
 	} else {
@@ -117,7 +117,12 @@ func update() {
 	fmt.Println("Package list updated")
 }
 
-func show(keyword string) {
+func show() {
+	loadPkgList()
+	showFS := flag.NewFlagSet("show", flag.ExitOnError)
+	showFS.Parse(flag.Args())
+	keyword := showFS.Arg(1)
+	fmt.Printf("Information for package: %s\n\n", keyword)
 	if pkgList[keyword].Name == "" {
 		fmt.Println("Package not found")
 	} else {
@@ -129,7 +134,11 @@ func show(keyword string) {
 	}
 }
 
-func search(keyword string) {
+func search() {
+	searchFS := flag.NewFlagSet("search", flag.ExitOnError)
+	searchFS.Parse(flag.Args())
+	keyword := searchFS.Arg(1)
+	loadPkgList()
 	fmt.Printf("searching for %s...\n", keyword)
 	sregex := regexp.MustCompile(`^[A-Za-z0-9]*` + keyword + `[A-Za-z0-9]*$`)
 	for key, pkg := range pkgList {
@@ -158,6 +167,7 @@ func genBuildList(pkg Package) (depList []string) {
 
 func genPkgList() (list map[string]Package) {
 	list = make(map[string]Package)
+	log.Println(pkgListUrl)
 	resp, err := http.Get(pkgListUrl)
 	check(err)
 	if resp.StatusCode != 200 {
