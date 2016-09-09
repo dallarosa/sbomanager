@@ -70,6 +70,8 @@ func runCommand(cmd string) {
 }
 
 func install() {
+	loadPkgList()
+
 	instFS := flag.NewFlagSet("install", flag.ExitOnError)
 	keyword := instFS.Arg(0)
 
