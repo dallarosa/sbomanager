@@ -73,20 +73,26 @@ func install() {
 	loadPkgList()
 
 	instFS := flag.NewFlagSet("install", flag.ExitOnError)
-	keyword := instFS.Arg(0)
+	instFS.Parse(flag.Args())
+	keyword := instFS.Arg(1)
 
 	if pkgList[keyword].Name == "" {
 		fmt.Println("Package not found")
 	} else {
-		buildList := genBuildList(pkgList[keyword])
-		fmt.Println("Building the following packages:")
-		fmt.Println(buildList)
-		fmt.Printf("(Y/n)")
-		c := ""
-		fmt.Scanln(&c)
-		if strings.ToLower(c) == "y" || c == "\n" {
-			for _, pkgName := range buildList {
-				installPkgs(pkgName)
+		pkg := pkgList[keyword]
+		if pkg.IsInstalled() {
+			fmt.Println("Packaged already installed. Use the upgrade command.")
+		} else {
+			buildList := genBuildList(pkgList[keyword])
+			fmt.Println("Building the following packages:")
+			fmt.Println(buildList)
+			fmt.Printf("(Y/n)")
+			c := ""
+			fmt.Scanln(&c)
+			if strings.ToLower(c) == "y" || c == "\n" {
+				for _, pkgName := range buildList {
+					installPkgs(pkgName)
+				}
 			}
 		}
 	}
@@ -207,22 +213,4 @@ func userHomeDir() string {
 	usr, err := user.Current()
 	check(err)
 	return usr.HomeDir
-}
-
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-func check(err error) {
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 )
 
 type Package struct {
@@ -29,16 +30,33 @@ type Package struct {
 func (p *Package) Create() {
 	log.Println("Creating package...")
 	err := os.Chdir(tmpDir + p.Name)
-	check(err)
-	cmd := exec.Command("./" + p.Name + ".SlackBuild")
+	check(err, getLine())
+	cmd := exec.Command("/bin/sh", p.Name+".SlackBuild")
 	output, err := cmd.CombinedOutput()
-	check(err)
-
 	splitOutput := bytes.Split(output, []byte{0x0a})
+	check(err, getLine())
+
 	pkgName := bytes.Split(splitOutput[len(splitOutput)-3], []byte{0x20})[2]
 
 	p.PackageFilePath = string(pkgName)
 
+}
+
+func (p *Package) IsInstalled() bool {
+	exp := "/var/log/packages/" + p.Name + "-*"
+	files, err := filepath.Glob(exp)
+
+	if err != nil {
+		log.Println("failed")
+		log.Println(err)
+		return false
+	}
+
+	if len(files) == 0 {
+		return false
+	}
+
+	return true
 }
 
 func (p *Package) Install() {
